@@ -15,5 +15,6 @@ export const environmentValidationSchema = Joi.object({
   DB_SCHEMA: Joi.string().default('public'),
   DB_SYNCHRONIZE: Joi.boolean().default(false),
   DB_LOGGING: Joi.boolean().default(false),
+  DB_MIGRATIONS_RUN: Joi.boolean().default(false),
   POSTGRES_PORT: Joi.number().port().default(5432),
 });

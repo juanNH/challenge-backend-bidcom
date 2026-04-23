@@ -23,6 +23,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { StandardErrorDto } from '../../../../../shared/presentation/http/dto/standard-error.dto';
+import { GetProductsUseCase } from '../../../application/use-cases/get-products.use-case';
+import { SearchProductsUseCase } from '../../../application/use-cases/search-products.use-case';
+import { Product } from '../../../domain/entities/product.entity';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { PatchProductDto } from '../dto/patch-product.dto';
 import { ProductResponseDto } from '../dto/product-response.dto';
@@ -33,20 +36,33 @@ import { UpdateProductDto } from '../dto/update-product.dto';
 @ApiTags('products')
 @Controller('products')
 export class ProductsController {
+  constructor(
+    private readonly searchProductsUseCase: SearchProductsUseCase,
+    private readonly getProductsUseCase: GetProductsUseCase,
+  ) {}
+
   @Get('search')
   @ApiOperation({ summary: 'Buscar productos' })
   @ApiOkResponse({ type: SearchProductsResponseDto })
   @ApiBadRequestResponse({ type: StandardErrorDto })
-  searchProducts(@Query() query: SearchProductsQueryDto): never {
-    void query;
-    throw new NotImplementedException('Pending TDD implementation');
+  async searchProducts(
+    @Query() query: SearchProductsQueryDto,
+  ): Promise<SearchProductsResponseDto> {
+    const result = await this.searchProductsUseCase.execute(query);
+
+    return {
+      total: result.total,
+      items: result.items.map((product) => this.toProductResponse(product)),
+    };
   }
 
   @Get()
   @ApiOperation({ summary: 'Obtener lista de productos' })
   @ApiOkResponse({ type: [ProductResponseDto] })
-  getProducts(): never {
-    throw new NotImplementedException('Pending TDD implementation');
+  async getProducts(): Promise<ProductResponseDto[]> {
+    const products = await this.getProductsUseCase.execute();
+
+    return products.map((product) => this.toProductResponse(product));
   }
 
   @Post()
@@ -103,5 +119,26 @@ export class ProductsController {
   deleteProduct(@Param('id', new ParseUUIDPipe()) id: string): never {
     void id;
     throw new NotImplementedException('Pending TDD implementation');
+  }
+
+  private toProductResponse(product: Product): ProductResponseDto {
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description ?? undefined,
+      price: product.price,
+      stock: product.stock,
+      category: {
+        id: product.category.id,
+        name: product.category.name,
+        createdAt: product.category.createdAt.toISOString(),
+      },
+      brand: {
+        id: product.brand.id,
+        name: product.brand.name,
+        createdAt: product.brand.createdAt.toISOString(),
+      },
+      createdAt: product.createdAt.toISOString(),
+    };
   }
 }

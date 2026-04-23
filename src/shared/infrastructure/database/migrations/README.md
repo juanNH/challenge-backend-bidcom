@@ -1,4 +1,5 @@
 # Migrations
 
-Esta carpeta queda preparada para futuras migraciones de TypeORM.
-La implementacion de migraciones y la logica de persistencia se agregaran siguiendo TDD.
+Migraciones de TypeORM para la base PostgreSQL de la aplicacion.
+
+En tests de integracion se usa SQLite en memoria con `synchronize: true`, por lo que estas migraciones aplican solo para entornos PostgreSQL.

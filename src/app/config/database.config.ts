@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
@@ -27,5 +28,12 @@ export const createTypeOrmOptions = (
     autoLoadEntities: true,
     synchronize: configService.get<boolean>('DB_SYNCHRONIZE', false),
     logging: configService.get<boolean>('DB_LOGGING', false),
+    migrationsRun: configService.get<boolean>('DB_MIGRATIONS_RUN', false),
+    migrations: [
+      join(
+        __dirname,
+        '../../shared/infrastructure/database/migrations/*{.ts,.js}',
+      ),
+    ],
   };
 };

@@ -132,9 +132,11 @@ describe('Products API (e2e)', () => {
           offset: 0,
         })
         .expect(200)
-        .expect({
-          total: 1,
-          items: [expectedProduct()],
+        .expect((response) => {
+          expect(response.body).toEqual({
+            total: 1,
+            items: [expectedProduct()],
+          });
         });
     });
 
@@ -151,16 +153,18 @@ describe('Products API (e2e)', () => {
       return request(app.getHttpServer())
         .get('/products')
         .expect(200)
-        .expect([
-          expectedProduct(),
-          expectedProduct({
-            id: SECOND_PRODUCT_ID,
-            name: 'Mouse',
-            description: 'Wireless mouse',
-            price: 50,
-            stock: 25,
-          }),
-        ]);
+        .expect((response) => {
+          expect(response.body).toEqual([
+            expectedProduct(),
+            expectedProduct({
+              id: SECOND_PRODUCT_ID,
+              name: 'Mouse',
+              description: 'Wireless mouse',
+              price: 50,
+              stock: 25,
+            }),
+          ]);
+        });
     });
   });
 
