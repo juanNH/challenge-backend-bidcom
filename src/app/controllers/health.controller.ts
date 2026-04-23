@@ -1,14 +1,14 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AppService } from './app.service';
+import { HealthService } from '../services/health.service';
 
 @ApiTags('health')
-@Controller()
-export class AppController {
-  constructor(private readonly appService: AppService) {}
+@Controller('health')
+export class HealthController {
+  constructor(private readonly healthService: HealthService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get application status' })
+  @ApiOperation({ summary: 'Get application health status' })
   @ApiOkResponse({
     schema: {
       example: {
@@ -20,6 +20,6 @@ export class AppController {
     },
   })
   getStatus() {
-    return this.appService.getStatus();
+    return this.healthService.getStatus();
   }
 }

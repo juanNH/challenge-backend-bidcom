@@ -1,0 +1,19 @@
+import * as Joi from 'joi';
+
+export const environmentValidationSchema = Joi.object({
+  NODE_ENV: Joi.string()
+    .valid('development', 'test', 'production')
+    .default('development'),
+  PORT: Joi.number().port().default(3000),
+  SWAGGER_PATH: Joi.string().default('docs'),
+  API_BASE_URL: Joi.string().uri().default('http://localhost:3000'),
+  DB_HOST: Joi.string().default('localhost'),
+  DB_PORT: Joi.number().port().default(5432),
+  DB_USERNAME: Joi.string().default('postgres'),
+  DB_PASSWORD: Joi.string().default('postgres'),
+  DB_NAME: Joi.string().default('challenge_backend_bidcom'),
+  DB_SCHEMA: Joi.string().default('public'),
+  DB_SYNCHRONIZE: Joi.boolean().default(false),
+  DB_LOGGING: Joi.boolean().default(false),
+  POSTGRES_PORT: Joi.number().port().default(5432),
+});

@@ -1,0 +1,388 @@
+openapi: 3.0.3
+info:
+  title: Products API
+  description: API para gestion de productos
+  version: 1.0.0
+
+servers:
+  - url: https://api.example.com
+
+paths:
+  /products/search:
+    get:
+      summary: Buscar productos
+      operationId: searchProducts
+      parameters:
+        - name: name
+          in: query
+          description: Nombre del producto (busqueda parcial)
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          description: Identificador de la categoria
+          schema:
+            type: string
+            format: uuid
+        - name: brandId
+          in: query
+          description: Identificador de la marca
+          schema:
+            type: string
+            format: uuid
+        - name: minPrice
+          in: query
+          description: Precio minimo
+          schema:
+            type: number
+            format: float
+        - name: maxPrice
+          in: query
+          description: Precio maximo
+          schema:
+            type: number
+            format: float
+        - name: limit
+          in: query
+          description: Cantidad maxima de resultados
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Offset para paginacion
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Resultados de busqueda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchProductsResponse'
+        '400':
+          description: Parametros invalidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+
+  /products:
+    get:
+      summary: Obtener lista de productos
+      operationId: getProducts
+      responses:
+        '200':
+          description: Lista de productos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+    post:
+      summary: Crear un producto
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Request invalido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+
+  /products/{id}:
+    get:
+      summary: Obtener un producto por ID
+      operationId: getProductById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+    put:
+      summary: Reemplazar un producto
+      operationId: updateProduct
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '200':
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Request invalido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+    patch:
+      summary: Actualizar parcialmente un producto
+      operationId: patchProduct
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductPatchInput'
+      responses:
+        '200':
+          description: Producto actualizado parcialmente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Request invalido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+    delete:
+      summary: Eliminar un producto
+      operationId: deleteProduct
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Producto eliminado
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardError'
+
+components:
+  schemas:
+    Category:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: cbf64f0a-9cef-4ae1-a5aa-1206a8e02f9a
+        name:
+          type: string
+          example: Electronics
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-03-18T10:30:00Z
+
+    Brand:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 0d6df463-6515-4201-a011-a52f65ad9583
+        name:
+          type: string
+          example: Lenovo
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-03-18T10:30:00Z
+
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - price
+        - stock
+        - category
+        - brand
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: prod_123
+        name:
+          type: string
+          example: Laptop
+        description:
+          type: string
+          example: Laptop de 16GB RAM
+        price:
+          type: number
+          format: float
+          example: 1200.5
+        stock:
+          type: integer
+          example: 10
+        category:
+          $ref: '#/components/schemas/Category'
+        brand:
+          $ref: '#/components/schemas/Brand'
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-03-18T10:30:00Z
+
+    ProductInput:
+      type: object
+      required:
+        - name
+        - price
+        - categoryId
+        - brandId
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        stock:
+          type: integer
+        categoryId:
+          type: string
+          format: uuid
+        brandId:
+          type: string
+          format: uuid
+
+    ProductPatchInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        stock:
+          type: integer
+        categoryId:
+          type: string
+          format: uuid
+        brandId:
+          type: string
+          format: uuid
+
+    SearchProductsResponse:
+      type: object
+      required:
+        - total
+        - items
+      properties:
+        total:
+          type: integer
+          example: 120
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+
+    StandardError:
+      type: object
+      required:
+        - error
+        - code
+        - traceId
+      properties:
+        error:
+          type: string
+          example: Product not found
+        code:
+          type: string
+          pattern: '^[A-Z][0-9]{4}$'
+          example: A0001
+        traceId:
+          type: string
+          example: b7c9f8d2-2e4c-4f0e-a123-9b12a6d4e8c3

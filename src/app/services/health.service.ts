@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-type AppStatus = {
+type HealthStatus = {
   name: string;
   status: 'ok';
   environment: string;
@@ -9,10 +9,10 @@ type AppStatus = {
 };
 
 @Injectable()
-export class AppService {
+export class HealthService {
   constructor(private readonly configService: ConfigService) {}
 
-  getStatus(): AppStatus {
+  getStatus(): HealthStatus {
     const swaggerPath = this.configService.get<string>('SWAGGER_PATH', 'docs');
 
     return {
