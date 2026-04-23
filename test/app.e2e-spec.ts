@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { setupHttp } from './../src/app/config/http.config';
 
 describe('HealthController (e2e)', () => {
   let app: INestApplication<App>;
@@ -15,6 +16,7 @@ describe('HealthController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    setupHttp(app);
     await app.init();
   });
 

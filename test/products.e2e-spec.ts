@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { AppModule } from './../src/app.module';
+import { setupHttp } from './../src/app/config/http.config';
 import { TypeOrmBrandEntity } from './../src/modules/products/infrastructure/persistence/typeorm/entities/typeorm-brand.entity';
 import { TypeOrmCategoryEntity } from './../src/modules/products/infrastructure/persistence/typeorm/entities/typeorm-category.entity';
 import { TypeOrmProductEntity } from './../src/modules/products/infrastructure/persistence/typeorm/entities/typeorm-product.entity';
@@ -101,13 +102,7 @@ describe('Products API (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        transform: true,
-        forbidNonWhitelisted: true,
-      }),
-    );
+    setupHttp(app);
     await app.init();
 
     dataSource = app.get(DataSource);
@@ -144,7 +139,16 @@ describe('Products API (e2e)', () => {
       return request(app.getHttpServer())
         .get('/products/search')
         .query({ minPrice: 'invalid-price' })
-        .expect(400);
+        .expect(400)
+        .expect((response) => {
+          expect(response.body).toEqual(
+            expect.objectContaining({
+              error: expect.any(String),
+              code: 'A0400',
+              traceId: expect.any(String),
+            }),
+          );
+        });
     });
   });
 
@@ -211,7 +215,16 @@ describe('Products API (e2e)', () => {
           categoryId: CATEGORY_ID,
           brandId: BRAND_ID,
         })
-        .expect(400);
+        .expect(400)
+        .expect((response) => {
+          expect(response.body).toEqual(
+            expect.objectContaining({
+              error: expect.any(String),
+              code: 'A0400',
+              traceId: expect.any(String),
+            }),
+          );
+        });
     });
   });
 
@@ -234,7 +247,14 @@ describe('Products API (e2e)', () => {
     it('returns 404 when product does not exist', () => {
       return request(app.getHttpServer())
         .get(`/products/${UNKNOWN_PRODUCT_ID}`)
-        .expect(404);
+        .expect(404)
+        .expect((response) => {
+          expect(response.body).toEqual({
+            error: 'Product not found',
+            code: 'A0404',
+            traceId: expect.any(String),
+          });
+        });
     });
   });
 

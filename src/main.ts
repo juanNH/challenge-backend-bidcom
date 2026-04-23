@@ -1,7 +1,7 @@
-import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { setupHttp } from './app/config/http.config';
 import { setupSwagger } from './app/config/swagger.config';
 
 async function bootstrap() {
@@ -9,14 +9,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
-
+  setupHttp(app);
   setupSwagger(app, configService);
 
   await app.listen(port);
