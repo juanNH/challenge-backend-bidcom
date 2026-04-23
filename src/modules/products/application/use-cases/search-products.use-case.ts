@@ -8,8 +8,6 @@ export class SearchProductsUseCase {
   constructor(private readonly productRepository: ProductRepository) {}
 
   execute(query: SearchProductsQuery): Promise<SearchProductsResult> {
-    void this.productRepository;
-    void query;
-    return Promise.reject(new Error('Not implemented'));
+    return this.productRepository.search(query);
   }
 }

@@ -5,7 +5,6 @@ export class GetProductsUseCase {
   constructor(private readonly productRepository: ProductRepository) {}
 
   execute(): Promise<Product[]> {
-    void this.productRepository;
-    return Promise.reject(new Error('Not implemented'));
+    return this.productRepository.findAll();
   }
 }
