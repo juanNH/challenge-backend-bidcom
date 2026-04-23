@@ -1,6 +1,15 @@
 import { SearchProductsQuery } from '../queries/search-products.query';
-import { SearchProductsResult } from '../../domain/repositories/product.repository';
+import {
+  ProductRepository,
+  SearchProductsResult,
+} from '../../domain/repositories/product.repository';
 
-export abstract class SearchProductsUseCase {
-  abstract execute(query: SearchProductsQuery): Promise<SearchProductsResult>;
+export class SearchProductsUseCase {
+  constructor(private readonly productRepository: ProductRepository) {}
+
+  execute(query: SearchProductsQuery): Promise<SearchProductsResult> {
+    void this.productRepository;
+    void query;
+    return Promise.reject(new Error('Not implemented'));
+  }
 }

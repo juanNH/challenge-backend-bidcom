@@ -1,15 +1,25 @@
 import { Injectable } from '@nestjs/common';
+import { Brand } from '../../../../domain/entities/brand.entity';
+import { Category } from '../../../../domain/entities/category.entity';
+import { Product } from '../../../../domain/entities/product.entity';
 import {
   ProductRepository,
   ProductSearchFilters,
   SearchProductsResult,
 } from '../../../../domain/repositories/product.repository';
-import { Brand } from '../../../../domain/entities/brand.entity';
-import { Category } from '../../../../domain/entities/category.entity';
-import { Product } from '../../../../domain/entities/product.entity';
 
 @Injectable()
 export class TypeOrmProductRepository implements ProductRepository {
+  findCategoryById(id: string): Promise<Category | null> {
+    void id;
+    return Promise.reject(new Error('Not implemented'));
+  }
+
+  findBrandById(id: string): Promise<Brand | null> {
+    void id;
+    return Promise.reject(new Error('Not implemented'));
+  }
+
   search(filters: ProductSearchFilters): Promise<SearchProductsResult> {
     void filters;
     return Promise.reject(new Error('Not implemented'));

@@ -18,6 +18,8 @@ export type SearchProductsResult = {
 };
 
 export abstract class ProductRepository {
+  abstract findCategoryById(id: string): Promise<Category | null>;
+  abstract findBrandById(id: string): Promise<Brand | null>;
   abstract search(filters: ProductSearchFilters): Promise<SearchProductsResult>;
   abstract findAll(): Promise<Product[]>;
   abstract findById(id: string): Promise<Product | null>;

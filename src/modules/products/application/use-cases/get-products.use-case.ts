@@ -1,5 +1,11 @@
 import { Product } from '../../domain/entities/product.entity';
+import { ProductRepository } from '../../domain/repositories/product.repository';
 
-export abstract class GetProductsUseCase {
-  abstract execute(): Promise<Product[]>;
+export class GetProductsUseCase {
+  constructor(private readonly productRepository: ProductRepository) {}
+
+  execute(): Promise<Product[]> {
+    void this.productRepository;
+    return Promise.reject(new Error('Not implemented'));
+  }
 }
