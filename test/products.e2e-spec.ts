@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
@@ -181,24 +181,26 @@ describe('Products API (e2e)', () => {
           brandId: BRAND_ID,
         })
         .expect(201)
-        .expect(
-          expect.objectContaining({
-            id: expect.any(String),
-            name: 'Keyboard',
-            description: 'Mechanical keyboard',
-            price: 150,
-            stock: 15,
-            category: expect.objectContaining({
-              id: CATEGORY_ID,
-              name: 'Electronics',
+        .expect((response) => {
+          expect(response.body).toEqual(
+            expect.objectContaining({
+              id: expect.any(String),
+              name: 'Keyboard',
+              description: 'Mechanical keyboard',
+              price: 150,
+              stock: 15,
+              category: expect.objectContaining({
+                id: CATEGORY_ID,
+                name: 'Electronics',
+              }),
+              brand: expect.objectContaining({
+                id: BRAND_ID,
+                name: 'Lenovo',
+              }),
+              createdAt: expect.any(String),
             }),
-            brand: expect.objectContaining({
-              id: BRAND_ID,
-              name: 'Lenovo',
-            }),
-            createdAt: expect.any(String),
-          }),
-        );
+          );
+        });
     });
 
     it('returns 400 when required fields are missing', () => {
@@ -218,7 +220,9 @@ describe('Products API (e2e)', () => {
       return request(app.getHttpServer())
         .get(`/products/${PRODUCT_ID}`)
         .expect(200)
-        .expect(expectedProduct());
+        .expect((response) => {
+          expect(response.body).toEqual(expectedProduct());
+        });
     });
 
     it('returns 400 when id is not a UUID', () => {
@@ -247,14 +251,16 @@ describe('Products API (e2e)', () => {
           brandId: BRAND_ID,
         })
         .expect(200)
-        .expect(
-          expectedProduct({
-            name: 'Updated laptop',
-            description: 'Updated description',
-            price: 1300,
-            stock: 8,
-          }),
-        );
+        .expect((response) => {
+          expect(response.body).toEqual(
+            expectedProduct({
+              name: 'Updated laptop',
+              description: 'Updated description',
+              price: 1300,
+              stock: 8,
+            }),
+          );
+        });
     });
 
     it('returns 400 when payload is invalid', () => {
@@ -292,11 +298,13 @@ describe('Products API (e2e)', () => {
           stock: 7,
         })
         .expect(200)
-        .expect(
-          expectedProduct({
-            stock: 7,
-          }),
-        );
+        .expect((response) => {
+          expect(response.body).toEqual(
+            expectedProduct({
+              stock: 7,
+            }),
+          );
+        });
     });
 
     it('returns 400 when payload is invalid', () => {

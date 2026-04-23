@@ -13,6 +13,7 @@ const OTHER_CATEGORY_ID = '55555555-5555-4555-8555-555555555555';
 const OTHER_BRAND_ID = '66666666-6666-4666-8666-666666666666';
 const PRODUCT_ID = '33333333-3333-4333-8333-333333333333';
 const OTHER_PRODUCT_ID = '77777777-7777-4777-8777-777777777777';
+const NEW_PRODUCT_ID = '88888888-8888-4888-8888-888888888888';
 const CREATED_AT = new Date('2026-03-18T10:30:00Z');
 
 const seedCatalog = async (
@@ -161,5 +162,69 @@ describe('TypeOrmProductRepository', () => {
     expect(result.items[0]?.name).toBe('Laptop ThinkPad');
     expect(result.items[0]?.category.id).toBe(CATEGORY_ID);
     expect(result.items[0]?.brand.id).toBe(BRAND_ID);
+  });
+  it('should create a product', async () => {
+    const product = new Product({
+      id: NEW_PRODUCT_ID,
+      name: 'Keyboard MX',
+      description: 'Mechanical keyboard',
+      price: 150,
+      stock: 15,
+      category: new Category(OTHER_CATEGORY_ID, 'Accessories', CREATED_AT),
+      brand: new Brand(OTHER_BRAND_ID, 'Logitech', CREATED_AT),
+      createdAt: CREATED_AT,
+    });
+
+    const createdProduct = await repository.create(product);
+
+    expect(createdProduct.id).toBe(NEW_PRODUCT_ID);
+    expect(createdProduct.name).toBe('Keyboard MX');
+    expect(createdProduct.category.id).toBe(OTHER_CATEGORY_ID);
+    expect(createdProduct.brand.id).toBe(OTHER_BRAND_ID);
+    await expect(repository.findById(NEW_PRODUCT_ID)).resolves.toEqual(
+      createdProduct,
+    );
+  });
+
+  it('should update a product', async () => {
+    const product = new Product({
+      id: PRODUCT_ID,
+      name: 'Updated laptop',
+      description: 'Updated description',
+      price: 1300,
+      stock: 8,
+      category: new Category(OTHER_CATEGORY_ID, 'Accessories', CREATED_AT),
+      brand: new Brand(OTHER_BRAND_ID, 'Logitech', CREATED_AT),
+      createdAt: CREATED_AT,
+    });
+
+    const updatedProduct = await repository.update(PRODUCT_ID, product);
+
+    expect(updatedProduct.id).toBe(PRODUCT_ID);
+    expect(updatedProduct.name).toBe('Updated laptop');
+    expect(updatedProduct.description).toBe('Updated description');
+    expect(updatedProduct.price).toBe(1300);
+    expect(updatedProduct.stock).toBe(8);
+    expect(updatedProduct.category.id).toBe(OTHER_CATEGORY_ID);
+    expect(updatedProduct.brand.id).toBe(OTHER_BRAND_ID);
+  });
+
+  it('should patch a product', async () => {
+    const patchedProduct = await repository.patch(PRODUCT_ID, {
+      stock: 7,
+      category: new Category(OTHER_CATEGORY_ID, 'Accessories', CREATED_AT),
+    });
+
+    expect(patchedProduct.id).toBe(PRODUCT_ID);
+    expect(patchedProduct.name).toBe('Laptop ThinkPad');
+    expect(patchedProduct.stock).toBe(7);
+    expect(patchedProduct.category.id).toBe(OTHER_CATEGORY_ID);
+    expect(patchedProduct.brand.id).toBe(BRAND_ID);
+  });
+
+  it('should delete a product', async () => {
+    await repository.delete(PRODUCT_ID);
+
+    await expect(repository.findById(PRODUCT_ID)).resolves.toBeNull();
   });
 });

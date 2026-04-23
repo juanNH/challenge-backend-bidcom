@@ -1,11 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
-  NotImplementedException,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -23,8 +24,13 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { StandardErrorDto } from '../../../../../shared/presentation/http/dto/standard-error.dto';
+import { CreateProductUseCase } from '../../../application/use-cases/create-product.use-case';
+import { DeleteProductUseCase } from '../../../application/use-cases/delete-product.use-case';
+import { GetProductByIdUseCase } from '../../../application/use-cases/get-product-by-id.use-case';
 import { GetProductsUseCase } from '../../../application/use-cases/get-products.use-case';
+import { PatchProductUseCase } from '../../../application/use-cases/patch-product.use-case';
 import { SearchProductsUseCase } from '../../../application/use-cases/search-products.use-case';
+import { UpdateProductUseCase } from '../../../application/use-cases/update-product.use-case';
 import { Product } from '../../../domain/entities/product.entity';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { PatchProductDto } from '../dto/patch-product.dto';
@@ -39,6 +45,11 @@ export class ProductsController {
   constructor(
     private readonly searchProductsUseCase: SearchProductsUseCase,
     private readonly getProductsUseCase: GetProductsUseCase,
+    private readonly getProductByIdUseCase: GetProductByIdUseCase,
+    private readonly createProductUseCase: CreateProductUseCase,
+    private readonly updateProductUseCase: UpdateProductUseCase,
+    private readonly patchProductUseCase: PatchProductUseCase,
+    private readonly deleteProductUseCase: DeleteProductUseCase,
   ) {}
 
   @Get('search')
@@ -69,18 +80,30 @@ export class ProductsController {
   @ApiOperation({ summary: 'Crear un producto' })
   @ApiCreatedResponse({ type: ProductResponseDto })
   @ApiBadRequestResponse({ type: StandardErrorDto })
-  createProduct(@Body() body: CreateProductDto): never {
-    void body;
-    throw new NotImplementedException('Pending TDD implementation');
+  async createProduct(
+    @Body() body: CreateProductDto,
+  ): Promise<ProductResponseDto> {
+    const product = await this.executeProductCommand(() =>
+      this.createProductUseCase.execute(body),
+    );
+
+    return this.toProductResponse(product);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un producto por ID' })
   @ApiOkResponse({ type: ProductResponseDto })
   @ApiNotFoundResponse({ type: StandardErrorDto })
-  getProductById(@Param('id', new ParseUUIDPipe()) id: string): never {
-    void id;
-    throw new NotImplementedException('Pending TDD implementation');
+  async getProductById(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<ProductResponseDto> {
+    const product = await this.getProductByIdUseCase.execute(id);
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return this.toProductResponse(product);
   }
 
   @Put(':id')
@@ -88,13 +111,15 @@ export class ProductsController {
   @ApiOkResponse({ type: ProductResponseDto })
   @ApiBadRequestResponse({ type: StandardErrorDto })
   @ApiNotFoundResponse({ type: StandardErrorDto })
-  updateProduct(
+  async updateProduct(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() body: UpdateProductDto,
-  ): never {
-    void id;
-    void body;
-    throw new NotImplementedException('Pending TDD implementation');
+  ): Promise<ProductResponseDto> {
+    const product = await this.executeProductCommand(() =>
+      this.updateProductUseCase.execute({ id, ...body }),
+    );
+
+    return this.toProductResponse(product);
   }
 
   @Patch(':id')
@@ -102,13 +127,15 @@ export class ProductsController {
   @ApiOkResponse({ type: ProductResponseDto })
   @ApiBadRequestResponse({ type: StandardErrorDto })
   @ApiNotFoundResponse({ type: StandardErrorDto })
-  patchProduct(
+  async patchProduct(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() body: PatchProductDto,
-  ): never {
-    void id;
-    void body;
-    throw new NotImplementedException('Pending TDD implementation');
+  ): Promise<ProductResponseDto> {
+    const product = await this.executeProductCommand(() =>
+      this.patchProductUseCase.execute({ id, ...body }),
+    );
+
+    return this.toProductResponse(product);
   }
 
   @Delete(':id')
@@ -116,9 +143,46 @@ export class ProductsController {
   @ApiOperation({ summary: 'Eliminar un producto' })
   @ApiNoContentResponse({ description: 'Producto eliminado' })
   @ApiNotFoundResponse({ type: StandardErrorDto })
-  deleteProduct(@Param('id', new ParseUUIDPipe()) id: string): never {
-    void id;
-    throw new NotImplementedException('Pending TDD implementation');
+  async deleteProduct(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<void> {
+    await this.executeVoidCommand(() => this.deleteProductUseCase.execute(id));
+  }
+
+  private async executeProductCommand(
+    command: () => Promise<Product>,
+  ): Promise<Product> {
+    try {
+      return await command();
+    } catch (error) {
+      this.throwHttpError(error);
+    }
+  }
+
+  private async executeVoidCommand(
+    command: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await command();
+    } catch (error) {
+      this.throwHttpError(error);
+    }
+  }
+
+  private throwHttpError(error: unknown): never {
+    if (error instanceof Error && error.message === 'Product not found') {
+      throw new NotFoundException(error.message);
+    }
+
+    if (
+      error instanceof Error &&
+      (error.message === 'Category not found' ||
+        error.message === 'Brand not found')
+    ) {
+      throw new BadRequestException(error.message);
+    }
+
+    throw error;
   }
 
   private toProductResponse(product: Product): ProductResponseDto {

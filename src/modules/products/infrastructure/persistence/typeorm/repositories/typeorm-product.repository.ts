@@ -113,18 +113,22 @@ export class TypeOrmProductRepository implements ProductRepository {
     return product ? this.toProduct(product) : null;
   }
 
-  create(product: Product): Promise<Product> {
-    void product;
-    return Promise.reject(new Error('Not implemented'));
+  async create(product: Product): Promise<Product> {
+    await this.productRepository.save(this.toTypeOrmProduct(product));
+
+    return this.findPersistedProductById(product.id);
   }
 
-  update(id: string, product: Product): Promise<Product> {
-    void id;
-    void product;
-    return Promise.reject(new Error('Not implemented'));
+  async update(id: string, product: Product): Promise<Product> {
+    await this.productRepository.save({
+      ...this.toTypeOrmProduct(product),
+      id,
+    });
+
+    return this.findPersistedProductById(id);
   }
 
-  patch(
+  async patch(
     id: string,
     payload: Partial<{
       name: string;
@@ -135,14 +139,49 @@ export class TypeOrmProductRepository implements ProductRepository {
       brand: Brand;
     }>,
   ): Promise<Product> {
-    void id;
-    void payload;
-    return Promise.reject(new Error('Not implemented'));
+    const updatePayload: Partial<TypeOrmProductEntity> = {};
+
+    if (payload.name !== undefined) {
+      updatePayload.name = payload.name;
+    }
+
+    if (payload.description !== undefined) {
+      updatePayload.description = payload.description;
+    }
+
+    if (payload.price !== undefined) {
+      updatePayload.price = payload.price;
+    }
+
+    if (payload.stock !== undefined) {
+      updatePayload.stock = payload.stock;
+    }
+
+    if (payload.category !== undefined) {
+      updatePayload.categoryId = payload.category.id;
+    }
+
+    if (payload.brand !== undefined) {
+      updatePayload.brandId = payload.brand.id;
+    }
+
+    await this.productRepository.update(id, updatePayload);
+
+    return this.findPersistedProductById(id);
   }
 
-  delete(id: string): Promise<void> {
-    void id;
-    return Promise.reject(new Error('Not implemented'));
+  async delete(id: string): Promise<void> {
+    await this.productRepository.delete(id);
+  }
+
+  private async findPersistedProductById(id: string): Promise<Product> {
+    const product = await this.findById(id);
+
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    return product;
   }
 
   private toProduct(product: TypeOrmProductEntity): Product {
@@ -156,6 +195,19 @@ export class TypeOrmProductRepository implements ProductRepository {
       brand: this.toBrand(product.brand),
       createdAt: product.createdAt,
     });
+  }
+
+  private toTypeOrmProduct(product: Product): Partial<TypeOrmProductEntity> {
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      stock: product.stock,
+      categoryId: product.category.id,
+      brandId: product.brand.id,
+      createdAt: product.createdAt,
+    };
   }
 
   private toCategory(category: TypeOrmCategoryEntity): Category {
