@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { CacheService } from '../../../../shared/infrastructure/cache/cache.service';
+import { PinoLogger } from 'nestjs-pino';
 import { Brand } from '../../domain/entities/brand.entity';
 import { Category } from '../../domain/entities/category.entity';
 import { Product } from '../../domain/entities/product.entity';
@@ -13,6 +14,7 @@ const CREATED_AT = new Date('2026-03-18T10:30:00Z');
 
 type ProductRepositoryMock = jest.Mocked<TypeOrmProductRepository>;
 type CacheServiceMock = jest.Mocked<CacheService>;
+type PinoLoggerMock = jest.Mocked<Pick<PinoLogger, 'info'>>;
 
 const createProduct = (): Product =>
   new Product({
@@ -49,13 +51,17 @@ const createCacheServiceMock = (): CacheServiceMock => ({
 describe('CachedProductRepository', () => {
   let origin: ProductRepositoryMock;
   let cacheService: CacheServiceMock;
+  let logger: PinoLoggerMock;
   let repository: CachedProductRepository;
   let product: Product;
 
   beforeEach(() => {
     origin = createRepositoryMock();
     cacheService = createCacheServiceMock();
-    repository = new CachedProductRepository(origin, cacheService);
+    logger = {
+      info: jest.fn(),
+    };
+    repository = new CachedProductRepository(origin, cacheService, logger);
     product = createProduct();
   });
 

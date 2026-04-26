@@ -101,7 +101,7 @@ describe('Products API (e2e)', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication({ bodyParser: false });
     setupHttp(app);
     await app.init();
 
@@ -173,6 +173,23 @@ describe('Products API (e2e)', () => {
   });
 
   describe('POST /products', () => {
+    it('returns 400 when request body is malformed JSON', () => {
+      return request(app.getHttpServer())
+        .post('/products')
+        .set('Content-Type', 'application/json')
+        .send('{"name":"Keyboard",}')
+        .expect(400)
+        .expect((response) => {
+          expect(response.body).toEqual(
+            expect.objectContaining({
+              error: expect.stringContaining('Invalid JSON request body'),
+              code: 'A0400',
+              traceId: expect.any(String),
+            }),
+          );
+        });
+    });
+
     it('creates a product from a valid payload', () => {
       return request(app.getHttpServer())
         .post('/products')

@@ -8,16 +8,24 @@ export class RedisCacheService
   implements CacheService, OnModuleInit, OnModuleDestroy
 {
   private readonly client: RedisClientType;
+  private readonly operationTimeoutMs: number;
   private enabled = true;
 
   constructor(configService: ConfigService) {
     const host = configService.get<string>('REDIS_HOST', 'localhost');
     const port = configService.get<number>('REDIS_PORT', 6379);
+    this.operationTimeoutMs = configService.get<number>(
+      'CACHE_OPERATION_TIMEOUT_MS',
+      200,
+    );
 
     this.client = createClient({
+      disableOfflineQueue: true,
       socket: {
         host,
         port,
+        connectTimeout: 500,
+        reconnectStrategy: false,
       },
     });
   }
@@ -28,7 +36,7 @@ export class RedisCacheService
     });
 
     try {
-      await this.client.connect();
+      await this.withTimeout(this.client.connect());
       this.enabled = true;
     } catch {
       this.enabled = false;
@@ -47,7 +55,7 @@ export class RedisCacheService
     }
 
     try {
-      const value = await this.client.get(key);
+      const value = await this.withTimeout(this.client.get(key));
 
       return value ? (JSON.parse(value) as T) : null;
     } catch {
@@ -61,7 +69,9 @@ export class RedisCacheService
     }
 
     try {
-      await this.client.set(key, JSON.stringify(value), { EX: ttlSeconds });
+      await this.withTimeout(
+        this.client.set(key, JSON.stringify(value), { EX: ttlSeconds }),
+      );
     } catch {
       this.enabled = false;
     }
@@ -73,7 +83,7 @@ export class RedisCacheService
     }
 
     try {
-      await this.client.del(key);
+      await this.withTimeout(this.client.del(key));
     } catch {
       this.enabled = false;
     }
@@ -92,11 +102,23 @@ export class RedisCacheService
         const batch = Array.isArray(keys) ? keys : [keys];
 
         if (batch.length > 0) {
-          await this.client.del(batch);
+          await this.withTimeout(this.client.del(batch));
         }
       }
     } catch {
       this.enabled = false;
     }
+  }
+
+  private withTimeout<T>(operation: Promise<T>): Promise<T> {
+    return Promise.race([
+      operation,
+      new Promise<T>((_resolve, reject) => {
+        setTimeout(
+          () => reject(new Error('Redis cache operation timeout')),
+          this.operationTimeoutMs,
+        );
+      }),
+    ]);
   }
 }

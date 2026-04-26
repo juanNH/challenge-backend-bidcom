@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { Repository } from 'typeorm';
+import { sanitizeLogPayload } from '../../../../../../shared/infrastructure/logging/log-sanitizer';
 import { Brand } from '../../../../domain/entities/brand.entity';
 import { Category } from '../../../../domain/entities/category.entity';
 import { Product } from '../../../../domain/entities/product.entity';
@@ -22,110 +24,172 @@ export class TypeOrmProductRepository implements ProductRepository {
     private readonly categoryRepository: Repository<TypeOrmCategoryEntity>,
     @InjectRepository(TypeOrmBrandEntity)
     private readonly brandRepository: Repository<TypeOrmBrandEntity>,
+    @Optional()
+    @InjectPinoLogger(TypeOrmProductRepository.name)
+    private readonly logger?: PinoLogger,
   ) {}
 
   async findCategoryById(id: string): Promise<Category | null> {
-    const category = await this.categoryRepository.findOne({ where: { id } });
+    return this.executeLogged(
+      'findCategoryById',
+      { categoryId: id },
+      async () => {
+        const category = await this.categoryRepository.findOne({
+          where: { id },
+        });
 
-    return category ? this.toCategory(category) : null;
+        return category ? this.toCategory(category) : null;
+      },
+      (category) => ({ found: Boolean(category) }),
+    );
   }
 
   async findBrandById(id: string): Promise<Brand | null> {
-    const brand = await this.brandRepository.findOne({ where: { id } });
+    return this.executeLogged(
+      'findBrandById',
+      { brandId: id },
+      async () => {
+        const brand = await this.brandRepository.findOne({ where: { id } });
 
-    return brand ? this.toBrand(brand) : null;
+        return brand ? this.toBrand(brand) : null;
+      },
+      (brand) => ({ found: Boolean(brand) }),
+    );
   }
 
   async search(filters: ProductSearchFilters): Promise<SearchProductsResult> {
-    const queryBuilder = this.productRepository
-      .createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category')
-      .leftJoinAndSelect('product.brand', 'brand')
-      .orderBy('product.createdAt', 'ASC')
-      .addOrderBy('product.id', 'ASC')
-      .skip(filters.offset)
-      .take(filters.limit);
+    return this.executeLogged(
+      'search',
+      { filters },
+      async () => {
+        const queryBuilder = this.productRepository
+          .createQueryBuilder('product')
+          .leftJoinAndSelect('product.category', 'category')
+          .leftJoinAndSelect('product.brand', 'brand')
+          .orderBy('product.createdAt', 'ASC')
+          .addOrderBy('product.id', 'ASC')
+          .skip(filters.offset)
+          .take(filters.limit);
 
-    const name = filters.name?.trim();
+        const name = filters.name?.trim();
 
-    if (name) {
-      queryBuilder.andWhere('LOWER(product.name) LIKE :name', {
-        name: `%${name.toLowerCase()}%`,
-      });
-    }
+        if (name) {
+          queryBuilder.andWhere('LOWER(product.name) LIKE :name', {
+            name: `%${name.toLowerCase()}%`,
+          });
+        }
 
-    if (filters.categoryId) {
-      queryBuilder.andWhere('product.categoryId = :categoryId', {
-        categoryId: filters.categoryId,
-      });
-    }
+        if (filters.categoryId) {
+          queryBuilder.andWhere('product.categoryId = :categoryId', {
+            categoryId: filters.categoryId,
+          });
+        }
 
-    if (filters.brandId) {
-      queryBuilder.andWhere('product.brandId = :brandId', {
-        brandId: filters.brandId,
-      });
-    }
+        if (filters.brandId) {
+          queryBuilder.andWhere('product.brandId = :brandId', {
+            brandId: filters.brandId,
+          });
+        }
 
-    if (filters.minPrice !== undefined) {
-      queryBuilder.andWhere('product.price >= :minPrice', {
-        minPrice: filters.minPrice,
-      });
-    }
+        if (filters.minPrice !== undefined) {
+          queryBuilder.andWhere('product.price >= :minPrice', {
+            minPrice: filters.minPrice,
+          });
+        }
 
-    if (filters.maxPrice !== undefined) {
-      queryBuilder.andWhere('product.price <= :maxPrice', {
-        maxPrice: filters.maxPrice,
-      });
-    }
+        if (filters.maxPrice !== undefined) {
+          queryBuilder.andWhere('product.price <= :maxPrice', {
+            maxPrice: filters.maxPrice,
+          });
+        }
 
-    const [products, total] = await queryBuilder.getManyAndCount();
+        const [products, total] = await queryBuilder.getManyAndCount();
 
-    return {
-      total,
-      items: products.map((product) => this.toProduct(product)),
-    };
+        return {
+          total,
+          items: products.map((product) => this.toProduct(product)),
+        };
+      },
+      (result) => ({ total: result.total, items: result.items.length }),
+    );
   }
 
   async findAll(): Promise<Product[]> {
-    const products = await this.productRepository.find({
-      relations: {
-        category: true,
-        brand: true,
-      },
-      order: {
-        createdAt: 'ASC',
-        id: 'ASC',
-      },
-    });
+    return this.executeLogged(
+      'findAll',
+      {},
+      async () => {
+        const products = await this.productRepository.find({
+          relations: {
+            category: true,
+            brand: true,
+          },
+          order: {
+            createdAt: 'ASC',
+            id: 'ASC',
+          },
+        });
 
-    return products.map((product) => this.toProduct(product));
+        return products.map((product) => this.toProduct(product));
+      },
+      (products) => ({ items: products.length }),
+    );
   }
 
   async findById(id: string): Promise<Product | null> {
-    const product = await this.productRepository.findOne({
-      where: { id },
-      relations: {
-        category: true,
-        brand: true,
-      },
-    });
+    return this.executeLogged(
+      'findById',
+      { productId: id },
+      async () => {
+        const product = await this.productRepository.findOne({
+          where: { id },
+          relations: {
+            category: true,
+            brand: true,
+          },
+        });
 
-    return product ? this.toProduct(product) : null;
+        return product ? this.toProduct(product) : null;
+      },
+      (product) => ({ found: Boolean(product) }),
+    );
   }
 
   async create(product: Product): Promise<Product> {
-    await this.productRepository.save(this.toTypeOrmProduct(product));
+    return this.executeLogged(
+      'create',
+      {
+        productId: product.id,
+        categoryId: product.category.id,
+        brandId: product.brand.id,
+      },
+      async () => {
+        await this.productRepository.save(this.toTypeOrmProduct(product));
 
-    return this.findPersistedProductById(product.id);
+        return this.findPersistedProductById(product.id);
+      },
+      (createdProduct) => ({ productId: createdProduct.id }),
+    );
   }
 
   async update(id: string, product: Product): Promise<Product> {
-    await this.productRepository.save({
-      ...this.toTypeOrmProduct(product),
-      id,
-    });
+    return this.executeLogged(
+      'update',
+      {
+        productId: id,
+        categoryId: product.category.id,
+        brandId: product.brand.id,
+      },
+      async () => {
+        await this.productRepository.save({
+          ...this.toTypeOrmProduct(product),
+          id,
+        });
 
-    return this.findPersistedProductById(id);
+        return this.findPersistedProductById(id);
+      },
+      (updatedProduct) => ({ productId: updatedProduct.id }),
+    );
   }
 
   async patch(
@@ -139,39 +203,56 @@ export class TypeOrmProductRepository implements ProductRepository {
       brand: Brand;
     }>,
   ): Promise<Product> {
-    const updatePayload: Partial<TypeOrmProductEntity> = {};
+    return this.executeLogged(
+      'patch',
+      {
+        productId: id,
+        fields: Object.keys(payload),
+      },
+      async () => {
+        const updatePayload: Partial<TypeOrmProductEntity> = {};
 
-    if (payload.name !== undefined) {
-      updatePayload.name = payload.name;
-    }
+        if (payload.name !== undefined) {
+          updatePayload.name = payload.name;
+        }
 
-    if (payload.description !== undefined) {
-      updatePayload.description = payload.description;
-    }
+        if (payload.description !== undefined) {
+          updatePayload.description = payload.description;
+        }
 
-    if (payload.price !== undefined) {
-      updatePayload.price = payload.price;
-    }
+        if (payload.price !== undefined) {
+          updatePayload.price = payload.price;
+        }
 
-    if (payload.stock !== undefined) {
-      updatePayload.stock = payload.stock;
-    }
+        if (payload.stock !== undefined) {
+          updatePayload.stock = payload.stock;
+        }
 
-    if (payload.category !== undefined) {
-      updatePayload.categoryId = payload.category.id;
-    }
+        if (payload.category !== undefined) {
+          updatePayload.categoryId = payload.category.id;
+        }
 
-    if (payload.brand !== undefined) {
-      updatePayload.brandId = payload.brand.id;
-    }
+        if (payload.brand !== undefined) {
+          updatePayload.brandId = payload.brand.id;
+        }
 
-    await this.productRepository.update(id, updatePayload);
+        await this.productRepository.update(id, updatePayload);
 
-    return this.findPersistedProductById(id);
+        return this.findPersistedProductById(id);
+      },
+      (patchedProduct) => ({ productId: patchedProduct.id }),
+    );
   }
 
   async delete(id: string): Promise<void> {
-    await this.productRepository.delete(id);
+    await this.executeLogged(
+      'delete',
+      { productId: id },
+      async () => {
+        await this.productRepository.delete(id);
+      },
+      () => ({ productId: id }),
+    );
   }
 
   private async findPersistedProductById(id: string): Promise<Product> {
@@ -216,5 +297,49 @@ export class TypeOrmProductRepository implements ProductRepository {
 
   private toBrand(brand: TypeOrmBrandEntity): Brand {
     return new Brand(brand.id, brand.name, brand.createdAt);
+  }
+
+  private async executeLogged<T>(
+    operation: string,
+    context: Record<string, unknown>,
+    action: () => Promise<T>,
+    successContext: (result: T) => Record<string, unknown> = () => ({}),
+  ): Promise<T> {
+    const startedAt = Date.now();
+    this.logger?.info(
+      {
+        operation,
+        context: sanitizeLogPayload(context),
+      },
+      'Product repository operation started',
+    );
+
+    try {
+      const result = await action();
+
+      this.logger?.info(
+        {
+          operation,
+          durationMs: Date.now() - startedAt,
+          context: sanitizeLogPayload(context),
+          result: sanitizeLogPayload(successContext(result)),
+        },
+        'Product repository operation completed',
+      );
+
+      return result;
+    } catch (error: unknown) {
+      this.logger?.error(
+        {
+          err: error,
+          operation,
+          durationMs: Date.now() - startedAt,
+          context: sanitizeLogPayload(context),
+        },
+        'Product repository operation failed',
+      );
+
+      throw error;
+    }
   }
 }

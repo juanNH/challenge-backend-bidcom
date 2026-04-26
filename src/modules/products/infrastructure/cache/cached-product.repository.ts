@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { Brand } from '../../domain/entities/brand.entity';
 import { Category } from '../../domain/entities/category.entity';
 import { Product } from '../../domain/entities/product.entity';
@@ -47,6 +48,8 @@ export class CachedProductRepository implements ProductRepository {
   constructor(
     private readonly origin: TypeOrmProductRepository,
     private readonly cacheService: CacheService,
+    @InjectPinoLogger(CachedProductRepository.name)
+    private readonly logger: PinoLogger,
   ) {}
 
   findCategoryById(id: string): Promise<Category | null> {
@@ -59,16 +62,30 @@ export class CachedProductRepository implements ProductRepository {
 
   async search(filters: ProductSearchFilters): Promise<SearchProductsResult> {
     const key = `products:search:${this.hash(filters)}`;
+    this.logger.info({ cacheKey: key, filters }, 'Product search cache lookup');
+
     const cached = await this.cacheService.get<CachedSearchProductsResult>(key);
 
     if (cached) {
+      this.logger.info(
+        { cacheKey: key, total: cached.total },
+        'Product search cache hit',
+      );
+
       return {
         total: cached.total,
         items: cached.items.map((product) => this.toProduct(product)),
       };
     }
 
+    this.logger.info({ cacheKey: key }, 'Product search cache miss');
+    this.logger.info({ filters }, 'Product search database query started');
     const result = await this.origin.search(filters);
+    this.logger.info(
+      { total: result.total, items: result.items.length },
+      'Product search database query finished',
+    );
+
     await this.cacheService.set(
       key,
       {
@@ -77,6 +94,7 @@ export class CachedProductRepository implements ProductRepository {
       },
       this.collectionTtlSeconds,
     );
+    this.logger.info({ cacheKey: key }, 'Product search result cached');
 
     return result;
   }
