@@ -22,8 +22,12 @@ export const environmentValidationSchema = Joi.object({
   REDIS_PORT: Joi.number().port().default(6379),
   REDIS_EXTERNAL_PORT: Joi.number().port().default(6379),
   CACHE_OPERATION_TIMEOUT_MS: Joi.number().integer().min(1).default(200),
+  CACHE_PRODUCT_TTL_SECONDS: Joi.number().integer().min(1).default(120),
+  CACHE_COLLECTION_TTL_SECONDS: Joi.number().integer().min(1).default(45),
   LOG_LEVEL: Joi.string()
     .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
     .default('info'),
   LOG_PRETTY: Joi.boolean().default(true),
+  THROTTLE_TTL_MS: Joi.number().integer().min(1).default(60000),
+  THROTTLE_LIMIT: Joi.number().integer().min(1).default(100),
 });

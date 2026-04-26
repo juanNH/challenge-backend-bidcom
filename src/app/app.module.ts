@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { LoggerModule } from 'nestjs-pino';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { environmentValidationSchema } from './config/environment.validation';
 import { HealthController } from './controllers/health.controller';
 import { HealthService } from './services/health.service';
@@ -11,6 +13,7 @@ import { DatabaseModule } from '../shared/infrastructure/database/database.modul
 import { ProductsModule } from '../modules/products/products.module';
 import { TraceModule } from '../shared/infrastructure/trace/trace.module';
 import { StandardErrorFilter } from '../shared/presentation/http/filters/standard-error.filter';
+import { RateLimitGuard } from '../shared/presentation/http/guards/rate-limit.guard';
 import { RequestLoggingInterceptor } from '../shared/presentation/http/interceptors/request-logging.interceptor';
 import { TraceContextInterceptor } from '../shared/presentation/http/interceptors/trace-context.interceptor';
 
@@ -22,6 +25,15 @@ import { TraceContextInterceptor } from '../shared/presentation/http/interceptor
       validationSchema: environmentValidationSchema,
     }),
     TraceModule,
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => [
+        {
+          ttl: configService.get<number>('THROTTLE_TTL_MS', 60_000),
+          limit: configService.get<number>('THROTTLE_LIMIT', 100),
+        },
+      ],
+    }),
     LoggerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
@@ -72,6 +84,10 @@ import { TraceContextInterceptor } from '../shared/presentation/http/interceptor
   providers: [
     HealthService,
     StandardErrorFilter,
+    {
+      provide: APP_GUARD,
+      useClass: RateLimitGuard,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: TraceContextInterceptor,

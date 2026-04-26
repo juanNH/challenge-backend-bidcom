@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { Brand } from '../../domain/entities/brand.entity';
@@ -43,16 +44,26 @@ type CachedSearchProductsResult = {
 
 @Injectable()
 export class CachedProductRepository implements ProductRepository {
-  private readonly productTtlSeconds = 120;
-  private readonly collectionTtlSeconds = 45;
+  private readonly productTtlSeconds: number;
+  private readonly collectionTtlSeconds: number;
 
   constructor(
     private readonly origin: TypeOrmProductRepository,
     private readonly cacheService: CacheService,
+    private readonly configService: ConfigService,
     @InjectPinoLogger(CachedProductRepository.name)
     private readonly logger: PinoLogger,
     private readonly traceContextService: TraceContextService,
-  ) {}
+  ) {
+    this.productTtlSeconds = this.configService.get<number>(
+      'CACHE_PRODUCT_TTL_SECONDS',
+      120,
+    );
+    this.collectionTtlSeconds = this.configService.get<number>(
+      'CACHE_COLLECTION_TTL_SECONDS',
+      45,
+    );
+  }
 
   findCategoryById(id: string): Promise<Category | null> {
     return this.origin.findCategoryById(id);
