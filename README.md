@@ -115,6 +115,18 @@ App + base de datos:
 docker compose up --build
 ```
 
+El compose tambien levanta Redis para cache de lecturas. La API usa cache-aside sobre demanda con TTL bajo:
+
+- `GET /products/:id`: cache por producto durante 120 segundos.
+- `GET /products` y `GET /products/search`: cache de colecciones/busquedas durante 45 segundos.
+- `POST`, `PUT`, `PATCH` y `DELETE`: invalidan el producto afectado y los caches de colecciones/busquedas.
+
+Para desarrollo local sin Docker se puede desactivar con:
+
+```env
+CACHE_ENABLED=false
+```
+
 ## Arquitectura
 
 El modulo de productos separa:
@@ -123,5 +135,7 @@ El modulo de productos separa:
 - `application`: casos de uso y comandos/queries.
 - `infrastructure`: entidades TypeORM y adaptadores de persistencia.
 - `presentation`: controllers y DTOs HTTP/Swagger.
+
+El cache se implementa como decorator de `ProductRepository`, separando la politica de cache del adaptador TypeORM.
 
 El proyecto sigue TDD, SOLID, Clean Architecture, clean code y lineamientos OOP definidos en `AGENTS.md`.

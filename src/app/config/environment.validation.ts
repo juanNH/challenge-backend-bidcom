@@ -17,4 +17,8 @@ export const environmentValidationSchema = Joi.object({
   DB_LOGGING: Joi.boolean().default(false),
   DB_MIGRATIONS_RUN: Joi.boolean().default(false),
   POSTGRES_PORT: Joi.number().port().default(5432),
+  CACHE_ENABLED: Joi.boolean().default(false),
+  REDIS_HOST: Joi.string().default('localhost'),
+  REDIS_PORT: Joi.number().port().default(6379),
+  REDIS_EXTERNAL_PORT: Joi.number().port().default(6379),
 });

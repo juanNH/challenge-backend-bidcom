@@ -12,6 +12,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: challenge-backend-bidcom-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_EXTERNAL_PORT:-6379}:6379'
+
   api:
     build:
       context: .
@@ -20,8 +27,12 @@ services:
       - .env
     environment:
       DB_HOST: postgres
+      CACHE_ENABLED: 'true'
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       - postgres
+      - redis
     ports:
       - '${PORT:-3000}:3000'
 
