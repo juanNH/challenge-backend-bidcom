@@ -34,26 +34,34 @@ export class SearchProductsQueryDto {
   @IsUUID()
   brandId?: string;
 
-  @ApiPropertyOptional({ example: 100, description: 'Precio minimo' })
+  @ApiPropertyOptional({
+    type: Number,
+    example: 100,
+    description: 'Precio minimo',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   minPrice?: number;
 
-  @ApiPropertyOptional({ example: 5000, description: 'Precio maximo' })
+  @ApiPropertyOptional({
+    type: Number,
+    example: 5000,
+    description: 'Precio maximo',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   maxPrice?: number;
 
-  @ApiPropertyOptional({ example: 20, default: 20 })
+  @ApiPropertyOptional({ type: Number, example: 20, default: 20 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   limit = 20;
 
-  @ApiPropertyOptional({ example: 0, default: 0 })
+  @ApiPropertyOptional({ type: Number, example: 0, default: 0 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
