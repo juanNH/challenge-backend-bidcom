@@ -49,6 +49,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     request: Request,
   ): Record<string, unknown> {
     return {
+      traceId: (request as Request & { id?: unknown }).id,
       controller: context.getClass().name,
       handler: context.getHandler().name,
       method: request.method,

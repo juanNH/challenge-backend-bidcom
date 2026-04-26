@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { CacheService } from '../../../../shared/infrastructure/cache/cache.service';
+import { TraceContextService } from '../../../../shared/infrastructure/trace/trace-context.service';
 import { PinoLogger } from 'nestjs-pino';
 import { Brand } from '../../domain/entities/brand.entity';
 import { Category } from '../../domain/entities/category.entity';
@@ -15,6 +16,9 @@ const CREATED_AT = new Date('2026-03-18T10:30:00Z');
 type ProductRepositoryMock = jest.Mocked<TypeOrmProductRepository>;
 type CacheServiceMock = jest.Mocked<CacheService>;
 type PinoLoggerMock = jest.Mocked<Pick<PinoLogger, 'info'>>;
+type TraceContextServiceMock = jest.Mocked<
+  Pick<TraceContextService, 'getTraceId'>
+>;
 
 const createProduct = (): Product =>
   new Product({
@@ -52,6 +56,7 @@ describe('CachedProductRepository', () => {
   let origin: ProductRepositoryMock;
   let cacheService: CacheServiceMock;
   let logger: PinoLoggerMock;
+  let traceContextService: TraceContextServiceMock;
   let repository: CachedProductRepository;
   let product: Product;
 
@@ -61,7 +66,15 @@ describe('CachedProductRepository', () => {
     logger = {
       info: jest.fn(),
     };
-    repository = new CachedProductRepository(origin, cacheService, logger);
+    traceContextService = {
+      getTraceId: jest.fn().mockReturnValue('test-trace-id'),
+    };
+    repository = new CachedProductRepository(
+      origin,
+      cacheService,
+      logger,
+      traceContextService,
+    );
     product = createProduct();
   });
 

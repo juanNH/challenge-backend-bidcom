@@ -41,6 +41,8 @@ export class StandardErrorFilter implements ExceptionFilter {
       traceId: this.getTraceId(request),
     };
 
+    response.setHeader('x-trace-id', body.traceId);
+
     this.logger.error(
       {
         err: exception,

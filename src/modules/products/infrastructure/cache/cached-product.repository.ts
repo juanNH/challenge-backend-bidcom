@@ -10,6 +10,7 @@ import {
   SearchProductsResult,
 } from '../../domain/repositories/product.repository';
 import { CacheService } from '../../../../shared/infrastructure/cache/cache.service';
+import { TraceContextService } from '../../../../shared/infrastructure/trace/trace-context.service';
 import { TypeOrmProductRepository } from '../persistence/typeorm/repositories/typeorm-product.repository';
 
 type CachedBrand = {
@@ -50,6 +51,7 @@ export class CachedProductRepository implements ProductRepository {
     private readonly cacheService: CacheService,
     @InjectPinoLogger(CachedProductRepository.name)
     private readonly logger: PinoLogger,
+    private readonly traceContextService: TraceContextService,
   ) {}
 
   findCategoryById(id: string): Promise<Category | null> {
@@ -62,13 +64,16 @@ export class CachedProductRepository implements ProductRepository {
 
   async search(filters: ProductSearchFilters): Promise<SearchProductsResult> {
     const key = `products:search:${this.hash(filters)}`;
-    this.logger.info({ cacheKey: key, filters }, 'Product search cache lookup');
+    this.logger.info(
+      { traceId: this.getTraceId(), cacheKey: key, filters },
+      'Product search cache lookup',
+    );
 
     const cached = await this.cacheService.get<CachedSearchProductsResult>(key);
 
     if (cached) {
       this.logger.info(
-        { cacheKey: key, total: cached.total },
+        { traceId: this.getTraceId(), cacheKey: key, total: cached.total },
         'Product search cache hit',
       );
 
@@ -78,11 +83,21 @@ export class CachedProductRepository implements ProductRepository {
       };
     }
 
-    this.logger.info({ cacheKey: key }, 'Product search cache miss');
-    this.logger.info({ filters }, 'Product search database query started');
+    this.logger.info(
+      { traceId: this.getTraceId(), cacheKey: key },
+      'Product search cache miss',
+    );
+    this.logger.info(
+      { traceId: this.getTraceId(), filters },
+      'Product search database query started',
+    );
     const result = await this.origin.search(filters);
     this.logger.info(
-      { total: result.total, items: result.items.length },
+      {
+        traceId: this.getTraceId(),
+        total: result.total,
+        items: result.items.length,
+      },
       'Product search database query finished',
     );
 
@@ -94,7 +109,10 @@ export class CachedProductRepository implements ProductRepository {
       },
       this.collectionTtlSeconds,
     );
-    this.logger.info({ cacheKey: key }, 'Product search result cached');
+    this.logger.info(
+      { traceId: this.getTraceId(), cacheKey: key },
+      'Product search result cached',
+    );
 
     return result;
   }
@@ -254,5 +272,9 @@ export class CachedProductRepository implements ProductRepository {
       ),
       createdAt: new Date(product.createdAt),
     });
+  }
+
+  private getTraceId(): string | undefined {
+    return this.traceContextService.getTraceId();
   }
 }

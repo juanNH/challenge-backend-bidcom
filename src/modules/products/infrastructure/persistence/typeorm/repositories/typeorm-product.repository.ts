@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { Repository } from 'typeorm';
 import { sanitizeLogPayload } from '../../../../../../shared/infrastructure/logging/log-sanitizer';
+import { TraceContextService } from '../../../../../../shared/infrastructure/trace/trace-context.service';
 import { Brand } from '../../../../domain/entities/brand.entity';
 import { Category } from '../../../../domain/entities/category.entity';
 import { Product } from '../../../../domain/entities/product.entity';
@@ -27,6 +28,8 @@ export class TypeOrmProductRepository implements ProductRepository {
     @Optional()
     @InjectPinoLogger(TypeOrmProductRepository.name)
     private readonly logger?: PinoLogger,
+    @Optional()
+    private readonly traceContextService?: TraceContextService,
   ) {}
 
   async findCategoryById(id: string): Promise<Category | null> {
@@ -308,6 +311,7 @@ export class TypeOrmProductRepository implements ProductRepository {
     const startedAt = Date.now();
     this.logger?.info(
       {
+        traceId: this.getTraceId(),
         operation,
         context: sanitizeLogPayload(context),
       },
@@ -319,6 +323,7 @@ export class TypeOrmProductRepository implements ProductRepository {
 
       this.logger?.info(
         {
+          traceId: this.getTraceId(),
           operation,
           durationMs: Date.now() - startedAt,
           context: sanitizeLogPayload(context),
@@ -331,6 +336,7 @@ export class TypeOrmProductRepository implements ProductRepository {
     } catch (error: unknown) {
       this.logger?.error(
         {
+          traceId: this.getTraceId(),
           err: error,
           operation,
           durationMs: Date.now() - startedAt,
@@ -341,5 +347,9 @@ export class TypeOrmProductRepository implements ProductRepository {
 
       throw error;
     }
+  }
+
+  private getTraceId(): string | undefined {
+    return this.traceContextService?.getTraceId();
   }
 }

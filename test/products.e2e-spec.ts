@@ -180,6 +180,7 @@ describe('Products API (e2e)', () => {
         .send('{"name":"Keyboard",}')
         .expect(400)
         .expect((response) => {
+          expect(response.headers['x-trace-id']).toEqual(expect.any(String));
           expect(response.body).toEqual(
             expect.objectContaining({
               error: expect.stringContaining('Invalid JSON request body'),
@@ -193,6 +194,7 @@ describe('Products API (e2e)', () => {
     it('creates a product from a valid payload', () => {
       return request(app.getHttpServer())
         .post('/products')
+        .set('x-trace-id', 'test-create-product-trace-id')
         .send({
           name: 'Keyboard',
           description: 'Mechanical keyboard',
@@ -203,6 +205,9 @@ describe('Products API (e2e)', () => {
         })
         .expect(201)
         .expect((response) => {
+          expect(response.headers['x-trace-id']).toBe(
+            'test-create-product-trace-id',
+          );
           expect(response.body).toEqual(
             expect.objectContaining({
               id: expect.any(String),

@@ -9,8 +9,10 @@ import { HealthController } from './controllers/health.controller';
 import { HealthService } from './services/health.service';
 import { DatabaseModule } from '../shared/infrastructure/database/database.module';
 import { ProductsModule } from '../modules/products/products.module';
+import { TraceModule } from '../shared/infrastructure/trace/trace.module';
 import { StandardErrorFilter } from '../shared/presentation/http/filters/standard-error.filter';
 import { RequestLoggingInterceptor } from '../shared/presentation/http/interceptors/request-logging.interceptor';
+import { TraceContextInterceptor } from '../shared/presentation/http/interceptors/trace-context.interceptor';
 
 @Module({
   imports: [
@@ -19,6 +21,7 @@ import { RequestLoggingInterceptor } from '../shared/presentation/http/intercept
       cache: true,
       validationSchema: environmentValidationSchema,
     }),
+    TraceModule,
     LoggerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
@@ -69,6 +72,10 @@ import { RequestLoggingInterceptor } from '../shared/presentation/http/intercept
   providers: [
     HealthService,
     StandardErrorFilter,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TraceContextInterceptor,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: RequestLoggingInterceptor,
