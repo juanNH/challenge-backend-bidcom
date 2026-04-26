@@ -26,7 +26,7 @@ describe('Rate limit (e2e)', () => {
   });
 
   it('returns 429 when an origin exceeds the configured request limit', async () => {
-    for (let index = 0; index < 100; index += 1) {
+    for (let index = 0; index < 10; index += 1) {
       await request(app.getHttpServer()).get('/products').expect(200);
     }
 

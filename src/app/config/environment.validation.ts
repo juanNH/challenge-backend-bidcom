@@ -28,6 +28,7 @@ export const environmentValidationSchema = Joi.object({
     .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
     .default('info'),
   LOG_PRETTY: Joi.boolean().default(true),
+  TEST_LOGS_ENABLED: Joi.boolean().default(false),
   THROTTLE_TTL_MS: Joi.number().integer().min(1).default(60000),
   THROTTLE_LIMIT: Joi.number().integer().min(1).default(100),
 });

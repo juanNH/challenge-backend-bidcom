@@ -46,11 +46,15 @@ import { TraceContextInterceptor } from '../shared/presentation/http/interceptor
           'LOG_PRETTY',
           nodeEnv !== 'production',
         );
+        const testLogsEnabled = configService.get<boolean>(
+          'TEST_LOGS_ENABLED',
+          false,
+        );
 
         return {
           pinoHttp: {
             level:
-              nodeEnv === 'test' && !process.env.LOG_LEVEL
+              nodeEnv === 'test' && !testLogsEnabled
                 ? 'silent'
                 : configuredLogLevel,
             genReqId: (request) => {

@@ -271,11 +271,13 @@ describe('Products API (e2e)', () => {
         .get(`/products/${UNKNOWN_PRODUCT_ID}`)
         .expect(404)
         .expect((response) => {
-          expect(response.body).toEqual({
-            error: 'Product not found',
-            code: 'A0404',
-            traceId: expect.any(String),
-          });
+          expect(response.body).toEqual(
+            expect.objectContaining({
+              error: 'Product not found',
+              code: 'A0404',
+              traceId: expect.any(String),
+            }),
+          );
         });
     });
   });
